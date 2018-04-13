@@ -115,18 +115,17 @@ class AgentSensor(Agent):
             dist = self._point.getDistance(target.point)
             angle = self._point.getAngle(target.point)
   
-            #error = np.random.normal(scale = dist * self._errLength) #high emissions
-            error = np.random.rand() * dist * self._errLength #only positive
+            dist = np.random.normal(loc = dist, scale = dist * self._errLength) #high emissions
+            #error = np.random.rand() * dist * self._errLength #only positive
             #error = np.random.standard_normal() * dist * self._errLength #point  - out ellipse
-            dist += error
-            print 'dist:', dist, 'error', error, 'scale', dist * self._errLength
+            #print 'dist:', dist, 'error', error, 'scale', dist * self._errLength
            
-            #error = np.random.normal(scale = self._errAngle)
-            error = np.random.rand() * self._errAngle
+            angle = np.random.normal(loc = angle, scale = self._errAngle)
+            #error = np.random.rand() * self._errAngle
             #error = np.random.standard_normal() * self._errAngle #point  - out ellipse
-            angle += error
-            print 'angle:', angle, 'error', error, 'scale', self._errAngle
-            measurement = m.MeasurementFromSensor(angle, dist, dist * self._errLength, dist * math.tan(self._errAngle))                        
+            #print 'angle:', angle, 'error', error, 'scale',math.sqrt(self._errAngle)
+            #measurement = m.MeasurementFromSensor(angle, dist, dist * self._errLength, dist * math.tan(self._errAngle))     
+            measurement = m.MeasurementFromSensor(angle, dist, dist * self._errLength, self._errAngle)                        
             self._measurements.append(measurement)
       
 if __name__ == "__main__":

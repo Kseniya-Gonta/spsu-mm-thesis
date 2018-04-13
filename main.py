@@ -23,7 +23,7 @@ from math import degrees
 class MainWindow(QtGui.QWidget):
     time = 0
     timer = QtCore.QTimer()
-    
+    colors = ['darkorange', 'y', 'mediumaquamarine', 'mediumorchid', 'darkgreen', 'crimson', 'gold', 'darkgrey']
     def initTimer(self):
         self.connect(self.timer, QtCore.SIGNAL('timeout()'), self.timerTick)
         self.timer.setInterval(1000)
@@ -69,7 +69,7 @@ class MainWindow(QtGui.QWidget):
         self.edit_numOfTargets.setFixedSize(maxSizeWidgets)
         self.edit_numOfTargets.setMaxLength(4)
         
-        self.edit_errOfLen = QtGui.QLineEdit('10')
+        self.edit_errOfLen = QtGui.QLineEdit('5')
         self.edit_errOfLen.setFixedSize(maxSizeWidgets)
         self.edit_errOfLen.setMaxLength(3)
         
@@ -142,7 +142,7 @@ class MainWindow(QtGui.QWidget):
         self.initTimer()
         self.initAgent()
         self.plot()
-        self.cCenter = cc.ComputingCenter()
+        self.center = cc.ComputingCenter()
     
     def bt_startClicked(self):
         self.timer.start()
@@ -152,15 +152,15 @@ class MainWindow(QtGui.QWidget):
         self.timeDisplay.setNum(self.time)
     
     def initAgent(self):
-        target1 = a.AgentTarget(200, 300, 25, 0)
-        target2 = a.AgentTarget(500, 200, -25, 0)
+        target1 = a.AgentTarget(100, 150, 25, 0)
+        target2 = a.AgentTarget(250, 100, -25, 0)
         self.targets = [target1, target2]
  
         errLength = float(self.edit_errOfLen.text())
         errAngle = float(self.edit_errOfAngle.text())
-        sensor1 = a.AgentSensor(100, 100, 0, 0, errLength, errAngle)
-        sensor2 = a.AgentSensor(200, 120, 0, 0, errLength, errAngle)  
-        sensor3 = a.AgentSensor(400, 50, 0, 0, errLength, errAngle)
+        sensor1 = a.AgentSensor(50, 50, 0, 0, errLength, errAngle)
+        sensor2 = a.AgentSensor(100, 60, 0, 0, errLength, errAngle)  
+        sensor3 = a.AgentSensor(200, 25, 0, 0, errLength, errAngle)
         self.sensors = [sensor1, sensor2, sensor3]
         
         
@@ -175,13 +175,17 @@ class MainWindow(QtGui.QWidget):
             sensor.getData(self.targets)
     
     def sendToCenter(self):
-        self.cCenter.getDataFromSensors(self.sensors)
+        self.center.getDataFromSensors(self.sensors)
+    
+    def findIntersection(self):
+        self.center.getIntersectionEllipses()
         
     def timerTick(self):
         self.changeTimeOnDisplay()
         self.agentsMove()
         self.observe()
         self.sendToCenter()
+        #self.findIntersection()
         self.plot2()
         
     def bt_pauseClicked(self):
@@ -198,8 +202,8 @@ class MainWindow(QtGui.QWidget):
         axes.clear()
 
         # Set / General        
-        xmin, xmax = 0, 600
-        ymin, ymax = 0, 500
+        xmin, xmax = 0, 400
+        ymin, ymax = 0, 300
         axes.set_xlim(xmin, xmax)
         axes.set_xlabel('X')
         axes.set_ylim(ymin, ymax)
@@ -217,6 +221,7 @@ class MainWindow(QtGui.QWidget):
             arrow = patches.Arrow(target.x, target.y, target.dx / abs(target.dx) * height, target.dy / abs(target.dx) * height, lenArrow, color='steelblue')        
             axes.add_patch(pattern)
             axes.add_patch(arrow)
+            
         # plot data
         #axes.plot(data)
         # refresh canvas
@@ -230,8 +235,8 @@ class MainWindow(QtGui.QWidget):
         axes.clear()
 
         # Set / General        
-        xmin, xmax = 0, 600
-        ymin, ymax = 0, 500
+        xmin, xmax = 0, 400#600,500
+        ymin, ymax = 0, 300
         axes.set_xlim(xmin, xmax)
         axes.set_xlabel('X')
         axes.set_ylim(ymin, ymax)
@@ -250,17 +255,36 @@ class MainWindow(QtGui.QWidget):
             axes.add_patch(pattern)
             axes.add_patch(arrow)
         
-        for dataBySensor in self.cCenter.dataOfTargets:
-            for targetData in dataBySensor:
-                point = patches.Ellipse((targetData.x, targetData.y), 1, 1, color='orange', linewidth=1)
+        for indexSensor in range(len(self.sensors)):
+            for indexTarget in range(len(self.targets)):
+                clr = self.colors[indexSensor]
+                point = patches.Ellipse((self.center.xOfTarget(indexTarget, indexSensor),
+                                         self.center.yOfTarget(indexTarget, indexSensor)), 
+                                        1, 1, color=clr, linewidth=1)
                 axes.add_patch(point)
                 if self.chb_neighborhood.isChecked():
-                    neighborhood = patches.Ellipse((targetData.x, targetData.y),2 * targetData.widthOfEllipse, 2 * targetData.lengthOfEllipse, degrees(targetData.angle), edgecolor='orange', fill=False, linewidth=1)
-                    print targetData.angle                    
+                    neighborhood = self.center.createPatchesNeighborhood(indexTarget, indexSensor, clr)
                     axes.add_patch(neighborhood)
-        # plot data
-        #axes.plot(data)
-        # refresh canvas
+#        indexSensor = 0
+#        for dataBySensor in self.center.dataOfTargets:
+#            indexTarget = 0
+#            for targetData in dataBySensor:
+#                point = patches.Ellipse((targetData.x, targetData.y), 1, 1, color=self.colors[indexSensor], linewidth=1)
+#                axes.add_patch(point)
+#                if self.chb_neighborhood.isChecked():
+#                    neighborhood = self.center.createPatchesNeighborhood(indexTarget, indexSensor, self.colors[indexSensor])
+#                    #neighborhood = patches.Ellipse((targetData.x, targetData.y),2 * targetData.widthOfEllipse,
+#                    #                               2 * targetData.lengthOfEllipse, degrees(targetData.angle),
+#                    #                              edgecolor=self.colors[indSensor], fill=False, linewidth=1)             
+#                    axes.add_patch(neighborhood)
+#                indexTarget += 1
+#            indexSensor += 1   
+            
+        index = len(self.sensors)
+        for i in self.center.intersections:
+            pattern = patches.Ellipse((i.x, i. y), 2*i.widthOfEllipse, 2*i.lengthOfEllipse,
+                                      degrees(i.angle), color = self.colors[index])
+            axes.add_patches(pattern)   
         self.canvas.draw()
        
 def main():
