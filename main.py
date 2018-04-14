@@ -17,7 +17,6 @@ from matplotlib import patches
 import agent as a
 import computingCenter as cc
 
-import random
 from math import degrees
  
 class MainWindow(QtGui.QWidget):
@@ -193,8 +192,6 @@ class MainWindow(QtGui.QWidget):
         
     def plot(self):
         ''' plot some random stuff '''
-        # random data
-        data = [random.random() for i in range(10)]
         # create an axis
         axes = self.figure.add_subplot(111, aspect = 'auto') #Pth=1 position on a grid with R=1 rows and C=1 columns.
 
@@ -235,7 +232,7 @@ class MainWindow(QtGui.QWidget):
         axes.clear()
 
         # Set / General        
-        xmin, xmax = 0, 400#600,500
+        xmin, xmax = 0, 400
         ymin, ymax = 0, 300
         axes.set_xlim(xmin, xmax)
         axes.set_xlabel('X')
@@ -254,7 +251,8 @@ class MainWindow(QtGui.QWidget):
             arrow = patches.Arrow(target.x, target.y, target.dx / abs(target.dx) * height, target.dy / abs(target.dx) * height, lenArrow, color='steelblue')        
             axes.add_patch(pattern)
             axes.add_patch(arrow)
-        
+            
+        #add measurement
         for indexSensor in range(len(self.sensors)):
             for indexTarget in range(len(self.targets)):
                 clr = self.colors[indexSensor]
@@ -280,11 +278,11 @@ class MainWindow(QtGui.QWidget):
 #                indexTarget += 1
 #            indexSensor += 1   
             
-        index = len(self.sensors)
-        for i in self.center.intersections:
-            pattern = patches.Ellipse((i.x, i. y), 2*i.widthOfEllipse, 2*i.lengthOfEllipse,
-                                      degrees(i.angle), color = self.colors[index])
-            axes.add_patches(pattern)   
+#        index = len(self.sensors)
+#        for i in self.center.intersections:
+#            pattern = patches.Ellipse((i.x, i. y), 2*i.widthOfEllipse, 2*i.lengthOfEllipse,
+#                                      degrees(i.angle), color = self.colors[index])
+#            axes.add_patches(pattern)   
         self.canvas.draw()
        
 def main():
