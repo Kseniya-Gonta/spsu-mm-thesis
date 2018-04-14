@@ -4,7 +4,6 @@ Created on Fri Jan 24 23:44:24 2018
  
 @author: Anna Leonova
 """
-import math
 import numpy as np
 import measurement as m
  
@@ -43,16 +42,16 @@ class Point(object):
     def getDistance(self, other):
         valueX = self.x - other.x
         valueY = self.y - other.y
-        return math.sqrt(math.pow(valueX, 2) + math.pow(valueY, 2))
+        return np.sqrt(np.power(valueX, 2) + np.power(valueY, 2))
    
     def getAngle(self, other):
         x = other.x - self.x
         y = other.y - self.y
-        return math.atan2(y, x)
+        return np.arctan2(y, x)
     
     def polarToCartesian(self, offset): #warning!
-        x = offset.x + self.y * math.cos(self.x)
-        y = offset.y + self.y * math.sin(self.x)
+        x = offset.x + self.y * np.cos(self.x)
+        y = offset.y + self.y * np.sin(self.x)
         return Point(x, y)
 
 class Agent(object):
@@ -99,7 +98,7 @@ class AgentSensor(Agent):
         super(AgentSensor, self).__init__(x, y, dx, dy)
         self._point = Point(x, y)
         self._errLength = float(errLength) * 0.01
-        self._errAngle = math.radians(float(errAngle))
+        self._errAngle = np.radians(float(errAngle))
     
     @property
     def measurements(self):
@@ -138,8 +137,8 @@ if __name__ == "__main__":
     print p1.getAngle(p2)
     print 'rubicon1'
    
-    print math.atan2(30, 40)
-    m1 = m.MeasurementFromSensor(math.atan2(30, 40), 50, 1, 1)
+    print np.arctan2(30, 40)
+    m1 = m.MeasurementFromSensor(np.arctan2(30, 40), 50, 1, 1)
     print 'm1 point', m1.point.point
     p3 = m1.polarPoint.polarToCartesian(Point(20, 10))
     print 'x y' , p3.point
