@@ -27,7 +27,7 @@ class Ellipse:
         self.P = np.dot(np.sqrt(temp - self.c), f_matrix_power(self.A, -0.5))
         self.x_c = np.dot(-np.linalg.matrix_power(self.A, -1), self.b)
         
-def plotEllipse(ellipses):
+def plotEllipse(ellipses):#don't work
     p = len(ellipses)
     i = 0
     while(i < p):
@@ -93,6 +93,6 @@ def findIntersection(ellipses):
     #output values
     result = Ellipse()
     temp_c = np.array(np.dot(np.dot(b.value.T, np.linalg.matrix_power(A.value, -1)), b.value) - 1)
-    result.init2(np.array(A.value), np.array(b.value).reshape(-1), temp_c[0][0]) #remove the crutches!!!!!
+    result.initByCQF(np.array(A.value), np.array(b.value).reshape(-1), temp_c[0][0]) #remove the crutches!!!!!
     return result
     
