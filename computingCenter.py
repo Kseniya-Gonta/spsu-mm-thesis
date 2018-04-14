@@ -15,28 +15,38 @@ class ComputingCenter(object):
     def __init__(self):
         """Constructor"""
         #self._dataOfTargets = [] #list of sensor's measurements vectors
-        self._neighborhoods = [] #2d array of cvx.Ellipse
+        #2d array of cvx.Ellipse, where i row - target i, j column - j sensor
+        self._neighborhoods = []
         self._ellipses = []
+        self._outerEllipses = []
+
+    @property
+    def outerEllipses(self):
+        return self._outerEllipses
    
-#    @xOfTarget.setter
-#    def xOfTarget(self, value):
-#        self._neighborhoods[indexTarget][indexSensor].x_c[0] = value
-    
+    @outerEllipses.setter
+    def outerEllipses(self, value):
+        self._outerEllipses = value      
+   
     @property
     def neighborhoods(self):
         return self._neighborhoods
    
     @neighborhoods.setter
     def neighborhoods(self, value):
-        self._neighborhoods = value
-
-#    @property
-#    def neighborhood(self, indexTarget, indexSensor):
-#        return self._neighborhoods[indexTarget][indexSensor]
-#   
-#    @neighborhood.setter
-#    def neighborhood(self, indexTarget, indexSensor, value):
-#        self._neighborhoods[indexTarget][indexSensor] = value    
+        self._neighborhoods = value    
+    
+    @property
+    def getNumTargets(self):
+        return self.neighborhoods.shape[0]
+        
+    @property
+    def getNumSensors(self):
+        return self.neighborhoods.shape[1]
+   
+    @neighborhoods.setter
+    def neighborhoods(self, value):
+        self._neighborhoods = value  
     
     @property
     def intersections(self):
@@ -70,7 +80,6 @@ class ComputingCenter(object):
         numSensors = len(sensors)
         numTargets = len(sensors[0].measurements)
         self._neighborhoods = np.empty([numTargets, numSensors], dtype = object)
-        
         j = 0   
         for sensor in sensors:
             i = 0
@@ -80,7 +89,8 @@ class ComputingCenter(object):
                 i += 1
             j += 1
             
-    def createEllipse(self, target, point):#type(target) = measurementFromSensors
+    def createEllipse(self, target, point):
+        #type(target) = measurementFromSensors
         angle = target.angle
         dist = target.dist
         R = np.array([[np.cos(angle), -np.sin(angle)],
@@ -95,13 +105,13 @@ class ComputingCenter(object):
                            [0,                  1]])
         P = np.dot(factor, P)
         cov = np.dot(np.dot(R, P), np.transpose(R))
-        print cov
         e = cvx.Ellipse()
         e.initByAm(cov, point)
         return e
     
     def createPatchesNeighborhood(self, indexTarget, indexSensor, color): 
-        e = self._neighborhoods[indexTarget, indexSensor]#type(e) = ellipse
+        #type(e) = cvx.Ellipse
+        e = self._neighborhoods[indexTarget, indexSensor]
     
         #Calculate the eigenvectors and eigenvalues
         covariance = e.P;
@@ -139,14 +149,62 @@ class ComputingCenter(object):
         x0 = avg[0];
         y0 = avg[1];
         a = chisquare_val * np.sqrt(largest_eigenval);
-        print 'a', a
         b = chisquare_val * np.sqrt(smallest_eigenval);
-        print 'b', b
         pattern = patches.Ellipse((x0, y0), 2*b, 2*a, np.degrees(phi), edgecolor = color, fill=False)
-        print 'ya tut'
         return pattern        
         
-    def getIntersectionEllipses(self):#don't work!
+    def getIntersectionEllipses(self):
+        self.outerEllipses = []
+        numTargets = self.getNumTargets()
+        for i in range(numTargets):
+            finalEllipse = cvx.findIntersection(self.neighborhoods[i, :])
+            self.outerEllipses.append(finalEllipse)
+    
+    def createPathesIntersection(self, indexTarget, color):
+        #type(e) = cvx.Ellipse
+        e = self.outerEllipses[indexTarget]
+        angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
+        R = np.array([[np.cos(angle), np.sin(angle)],
+                      [-np.sin(angle), np.cos(angle)]])
+        Q = np.dot(np.dot(R, e.P), np.transpose(R))
+        x0, y0 = e.x_c
+        pattern = patches.Ellipse((x0, y0), 2*e.Q[0, 0], 2*Q[1, 1],  np.degrees(angle),
+                                  edgecolor = color, fill=False)
+        return pattern 
+        
+    #outer boundary, result - square
+    def createIntersectionBoundary(self, indexTarget):
+        #type(e) = cvx.Ellipse
+        e = self.outerEllipses[indexTarget]
+        angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
+        R = np.array([[np.cos(angle), np.sin(angle)],
+                      [-np.sin(angle), np.cos(angle)]])
+        Q = np.dot(np.dot(R, e.P), np.transpose(R))
+        #find size of square side
+        size = 2 * np.amax(Q[0, 0], Q[1, 1])
+        xCenter, yCenter = e.x_c
+        return xCenter, yCenter, size
+    
+    def methodMonteCarlo(self, indexTarget, indSensors):
+        numShots = 1000
+        #find boundary
+        x_c, y_c, size = self.createIntersectionBoundary(indexTarget)
+        
+        a = np.random.uniform(x_c-size, y_c-size, numShots)
+        b = np.random.uniform(x_c-size, y_c-size, numShots)
+        
+        counter = 0
+        for x, y in zip(a, b):
+            #count those points that belong to all ellipses at once
+            #if all()
+            print 'hello'
+            
+            
+    
+    #def InEllipse(self, e, point):
+        
+
+    def getIntersectionEllipses0(self):#don't work!
         self.intersections = []
         #angle in rad
         ellipses = []
