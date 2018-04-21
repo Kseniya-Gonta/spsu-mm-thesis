@@ -43,10 +43,6 @@ class ComputingCenter(object):
     @property
     def getNumSensors(self):
         return self.neighborhoods.shape[1]
-   
-    @neighborhoods.setter
-    def neighborhoods(self, value):
-        self._neighborhoods = value  
     
     @property
     def intersections(self):
@@ -93,28 +89,22 @@ class ComputingCenter(object):
         #type(target) = measurementFromSensors
         angle = target.angle
         dist = target.dist
+        #Anticlockwise rotation matrix
         R = np.array([[np.cos(angle), -np.sin(angle)],
-                      [np.sin(angle), np.cos(angle)]])#What of kind?
-        sigma_angle = target.widthOfEllipse
+                      [np.sin(angle), np.cos(angle)]])
+        sigma_angle = np.degrees(target.widthOfEllipse) #degrees
         sigma_distance = target.lengthOfEllipse
         P = np.array([[np.power(sigma_angle, 2), 0],
                       [0, np.power(sigma_distance, 2)]])
+                      
         #factor - The coefficient for increasing the error in angle according to the distance
         #magic constant, actually 1% of the distance value
         factor = np.array([[np.power(dist/100, 2), 0], 
-                           [0,                  1]])
+                           [0,                     1]])
         P = np.dot(factor, P)
-        cov = np.dot(np.dot(R, P), np.transpose(R))
-        e = cvx.Ellipse()
-        e.initByAm(cov, point)
-        return e
-    
-    def createPatchesNeighborhood(self, indexTarget, indexSensor, color): 
-        #type(e) = cvx.Ellipse
-        e = self._neighborhoods[indexTarget, indexSensor]
-    
+        covariance = np.dot(np.dot(R, P), np.transpose(R))
+        
         #Calculate the eigenvectors and eigenvalues
-        covariance = e.P;
         eigenval, eigenvec = np.linalg.eig(covariance);
 
         #Get the largest eigenvalue
@@ -124,24 +114,22 @@ class ComputingCenter(object):
         largest_eigenvec_ind = np.argmax(eigenval)
         largest_eigenvec = eigenvec[:, largest_eigenvec_ind]
         
-        #Get the smallest eigenvector and eigenvalue
+        #Get the smallest eigenvalue
         if largest_eigenvec_ind == 0:
             smallest_eigenval = eigenval[1]
-            #smallest_eigenvec = eigenvec[:,1]
         else:
             smallest_eigenval = eigenval[0]
-            #smallest_eigenvec = eigenvec[:,0]
         
         #Calculate the angle between the x-axis and the largest eigenvector
-        angle = np.arctan2(largest_eigenvec[1], largest_eigenvec[0])
+        angle = -np.arctan2(largest_eigenvec[0], largest_eigenvec[1])#why -???
         
         #This angle is between -pi and pi.
         #Let's shift it such that the angle is between 0 and 2pi
-        if angle < 0:
-            angle = angle + 2 * np.pi
+#        if angle < 0:
+#            angle = angle + 2 * np.pi
         
         #Get the coordinates of the data mean
-        avg = e.x_c;
+        avg = point;
         
         #Get the 95% confidence interval error ellipse
         chisquare_val = 5.99;
@@ -150,12 +138,47 @@ class ComputingCenter(object):
         y0 = avg[1];
         a = chisquare_val * np.sqrt(largest_eigenval);
         b = chisquare_val * np.sqrt(smallest_eigenval);
-        pattern = patches.Ellipse((x0, y0), 2*b, 2*a, np.degrees(phi), edgecolor = color, fill=False)
+        #print 'x,y', x0, y0, 'a,b', a, b,'phi', np.degrees(phi)
+        #print 'b,s', largest_eigenval, smallest_eigenval 
+        
+        #Create cvx.Ellipse        
+        P = np.array([[a, 0],
+                      [0, b]])
+        #Anticlockwise rotation matrix
+        R = np.array([[np.cos(angle), -np.sin(angle)],
+                      [np.sin(angle), np.cos(angle)]])
+        P = np.dot(np.dot(R, P), np.transpose(R))
+        e = cvx.Ellipse()
+        e.initByAm(P, point)
+        return e
+        
+    def getDataPatchesEllipse(self, e):
+        #type(e) = cvx.Ellipse
+        #Calculate the angle between the x-axis and the largest semiaxis
+        angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0]) + np.pi/2
+        #Clockwise rotation matrix
+        R = np.array([[np.cos(angle), np.sin(angle)],
+                      [-np.sin(angle), np.cos(angle)]])
+        Q = np.dot(np.dot(R, e.P), np.transpose(R))
+        a = Q[0, 0]
+        b = Q[1, 1]
+        return e.x_c[0], e.x_c[1], a, b, angle
+    
+    def createPatchesNeighborhood(self, indexTarget, indexSensor, color): 
+        #type(e) = cvx.Ellipse
+        e = self._neighborhoods[indexTarget, indexSensor]
+    
+        #Get center of ellipse(x0, y0), length of the bigger semiaxis - a,
+        #the length of the smaller semiaxis - b, 
+        #angle - the angle between the x-axis and the bigger semiaxis  
+        x0, y0, a, b, angle = self.getDataPatchesEllipse(e)
+        #print 'angle', np.degrees(angle), 'a,b', a, b
+        pattern = patches.Ellipse((x0, y0), 2*a, 2*b, np.degrees(angle), edgecolor = color, fill=False)
         return pattern        
         
     def getIntersectionEllipses(self):
         self.outerEllipses = []
-        numTargets = self.getNumTargets()
+        numTargets = self.getNumTargets
         for i in range(numTargets):
             finalEllipse = cvx.findIntersection(self.neighborhoods[i, :])
             self.outerEllipses.append(finalEllipse)
@@ -164,11 +187,12 @@ class ComputingCenter(object):
         #type(e) = cvx.Ellipse
         e = self.outerEllipses[indexTarget]
         angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
+        #Clockwise rotation matrix
         R = np.array([[np.cos(angle), np.sin(angle)],
                       [-np.sin(angle), np.cos(angle)]])
         Q = np.dot(np.dot(R, e.P), np.transpose(R))
         x0, y0 = e.x_c
-        pattern = patches.Ellipse((x0, y0), 2*e.Q[0, 0], 2*Q[1, 1],  np.degrees(angle),
+        pattern = patches.Ellipse((x0, y0), 2*Q[0, 0], 2*Q[1, 1],  np.degrees(angle),
                                   edgecolor = color, fill=False)
         return pattern 
         
@@ -181,12 +205,21 @@ class ComputingCenter(object):
                       [-np.sin(angle), np.cos(angle)]])
         Q = np.dot(np.dot(R, e.P), np.transpose(R))
         #find size of square side
-        size = 2 * np.amax(Q[0, 0], Q[1, 1])
+        size = 2 * max(Q[0, 0], Q[1, 1])
         xCenter, yCenter = e.x_c
         return xCenter, yCenter, size
     
+    def inEllipse(self, point, e):
+        #type(e) = cvx.Ellipse
+        #point.T = point
+        leftPart = np.dot(np.dot(point, e.A), point) + 2 * np.dot(point, e.b) + e.c 
+        if leftPart <= 0:
+            return True
+        return False
+    
     def methodMonteCarlo(self, indexTarget, indSensors):
         numShots = 1000
+        
         #find boundary
         x_c, y_c, size = self.createIntersectionBoundary(indexTarget)
         
@@ -196,13 +229,21 @@ class ComputingCenter(object):
         counter = 0
         for x, y in zip(a, b):
             #count those points that belong to all ellipses at once
-            #if all()
-            print 'hello'
-            
-            
-    
-    #def InEllipse(self, e, point):
+            if all(self.inEllipse(np.array([x, y]), self.neighborhoods[indexTarget, j]) for j in indSensors):
+                counter += 1
+        volume = counter / numShots * np.power(size, 2)
+        return volume
+
+    def bruteForce(self):
+        numSensors = self.getNumSensors()
+        num = np.power(2, numSensors)
         
+        for i in range(1, num):
+            indsSensors = []
+            for j in range(numSensors):
+                if i & (1 << j):
+                    indsSensors.append(j)
+            print indsSensors[:]
 
     def getIntersectionEllipses0(self):#don't work!
         self.intersections = []
