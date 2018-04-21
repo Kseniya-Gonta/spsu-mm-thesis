@@ -87,7 +87,7 @@ def findIntersection(ellipses):
     constraints = [tau >= 0, Matrix_Ad - ellipses_sum << 0]
     # Form and solve optimization problem
     prob = cvx.Problem(obj, constraints)
-    prob.solve()
+    prob.solve(verbose=True, max_iters=1000, refinement = 2)
     if prob.status != cvx.OPTIMAL:
         raise Exception('CVXPY Error')
     #output values
