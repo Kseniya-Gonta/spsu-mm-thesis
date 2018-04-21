@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 """
-Created on Sat Jan 24 15:49:36 2018
+Created on Wed Jan 24 15:49:36 2018
  
 @author: leonova Anna
 """
@@ -72,29 +72,30 @@ class MainWindow(QtGui.QWidget):
         self.edit_errOfLen.setFixedSize(maxSizeWidgets)
         self.edit_errOfLen.setMaxLength(3)
         
-        self.edit_errOfAngle = QtGui.QLineEdit('0.7')   
+        self.edit_errOfAngle = QtGui.QLineEdit('0.9')   
         self.edit_errOfAngle.setFixedSize(maxSizeWidgets)
        
 #________________________________________________________
+        space = 13        
         sublayoutOptions = QtGui.QVBoxLayout()
         sublayoutOptions.setSpacing(2)
         
         sublayoutOptions.addWidget(l_time) 
         sublayoutOptions.addWidget(self.timeDisplay)
-        sublayoutOptions.addSpacing(13)
+        sublayoutOptions.addSpacing(space)
         
         sublayoutOptions.addWidget(bt_start)
         sublayoutOptions.addWidget(bt_pause)
-        sublayoutOptions.addSpacing(13)
+        sublayoutOptions.addSpacing(space)
                 
         sublayoutOptions.addWidget(l_groupRButton)
         sublayoutOptions.addWidget(rb_algorithm1)
         sublayoutOptions.addWidget(rb_algorithm2)
-        sublayoutOptions.addSpacing(13)
+        sublayoutOptions.addSpacing(space)
                 
         sublayoutOptions.addWidget(l_show)
         sublayoutOptions.addWidget(self.chb_neighborhood)
-        sublayoutOptions.addSpacing(13)
+        sublayoutOptions.addSpacing(space)
         
         sublayoutOptions.addWidget(l_parameters)
         sublayoutOptions.addWidget(l_numOfSensors)
@@ -122,16 +123,11 @@ class MainWindow(QtGui.QWidget):
         # this is the Navigation widget
         # it takes the Canvas widget and a parent
         self.toolbar = NavigationToolbar(self.canvas, self)
-
-        # Just some button connected to `plot` method
-        #self.button = QtGui.QPushButton('Plot')
-        #self.button.clicked.connect(self.plot)
         
         # set the layout
         sublayoutFigure = QtGui.QVBoxLayout()
         sublayoutFigure.addWidget(self.toolbar)
         sublayoutFigure.addWidget(self.canvas)
-        #sublayoutFigure.addWidget(self.button)
         grid.addLayout(sublayoutFigure, 0, 1, 28, 10)
 #_________________________________________________________
         
@@ -151,16 +147,16 @@ class MainWindow(QtGui.QWidget):
         self.timeDisplay.setNum(self.time)
     
     def initAgent(self):
-        target1 = a.AgentTarget(100, 150, 25, 0)
-        target2 = a.AgentTarget(250, 100, -25, 0)
-        self.targets = [target1, target2]
+        target1 = a.AgentTarget(100, 150, 10, 0)
+        #target2 = a.AgentTarget(250, 100, -25, 0)
+        self.targets = [target1]
  
         errLength = float(self.edit_errOfLen.text())
         errAngle = float(self.edit_errOfAngle.text())
         sensor1 = a.AgentSensor(50, 50, 0, 0, errLength, errAngle)
-        sensor2 = a.AgentSensor(100, 60, 0, 0, errLength, errAngle)  
+        #sensor2 = a.AgentSensor(100, 60, 0, 0, errLength, errAngle)  
         sensor3 = a.AgentSensor(200, 25, 0, 0, errLength, errAngle)
-        self.sensors = [sensor1, sensor2, sensor3]
+        self.sensors = [sensor1, sensor3]
         
         
     def agentsMove(self):
@@ -184,14 +180,13 @@ class MainWindow(QtGui.QWidget):
         self.agentsMove()
         self.observe()
         self.sendToCenter()
-        #self.findIntersection()
+        self.findIntersection()
         self.plot2()
         
     def bt_pauseClicked(self):
         self.timer.stop()
         
     def plot(self):
-        ''' plot some random stuff '''
         # create an axis
         axes = self.figure.add_subplot(111, aspect = 'auto') #Pth=1 position on a grid with R=1 rows and C=1 columns.
 
@@ -263,6 +258,14 @@ class MainWindow(QtGui.QWidget):
                 if self.chb_neighborhood.isChecked():
                     neighborhood = self.center.createPatchesNeighborhood(indexTarget, indexSensor, clr)
                     axes.add_patch(neighborhood)
+                    
+        #add intersection
+        clr = self.colors[len(self.targets)]        
+        for i in range(len(self.targets)):
+            intersection = self.center.createPathesIntersection(i, clr)
+            axes.add_patch(intersection)
+            xCenter, yCenter, size = self.center.createIntersectionBoundary(i)
+            print 'bondary', xCenter, yCenter, size
 #        indexSensor = 0
 #        for dataBySensor in self.center.dataOfTargets:
 #            indexTarget = 0
