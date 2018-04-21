@@ -82,6 +82,10 @@ class Agent(object):
         return self._point
    
     def move(self):
+        #x = (-self.y*(np.power(self.x, 2) + np.power(self.y, 2))*self.dx)/(self.x*(self.x+np.power(self.y, 2)))
+        #y = (np.power(self.x, 2) + np.power(self.y, 2))*self.dx/(self.x+np.power(self.y, 2))
+        #temp = Point(x, y)
+        #self._point.add(temp)
         self._point.add(self._speed)
    
        
