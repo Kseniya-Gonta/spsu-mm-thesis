@@ -9,6 +9,7 @@ import measurement as m
 import cvxlib as cvx
 import numpy as np
 from matplotlib import patches
+import datetime
 
 class ComputingCenter(object):
    
@@ -196,8 +197,8 @@ class ComputingCenter(object):
                                   edgecolor = color, fill=False)
         return pattern 
         
-    #outer boundary, result - square
-    def createIntersectionBoundary(self, indexTarget):
+    #outer boundary, result - square, create by cvxlib
+    def createIntersectionBoundary2(self, indexTarget):
         #type(e) = cvx.Ellipse
         e = self.outerEllipses[indexTarget]
         angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
@@ -208,6 +209,21 @@ class ComputingCenter(object):
         size = 2 * max(Q[0, 0], Q[1, 1])
         xCenter, yCenter = e.x_c
         return xCenter, yCenter, size
+        
+    #outer boundary, result - square, create by confidence ellipses
+    def createIntersectionBoundary(self, indexTarget, indsSensors):
+        minSize = float('inf')     
+        for j in indsSensors:
+            e = self.neighborhoods[indexTarget, j]
+            angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
+            R = np.array([[np.cos(angle), np.sin(angle)],
+                          [-np.sin(angle), np.cos(angle)]])
+            Q = np.dot(np.dot(R, e.P), np.transpose(R))
+            semiaxis = max(Q[0, 0], Q[1, 1])
+            if minSize > semiaxis:
+                minSize = semiaxis
+                xCenter, yCenter = e.x_c
+        return xCenter, yCenter, 2 * minSize
     
     def inEllipse(self, point, e):
         #type(e) = cvx.Ellipse
@@ -218,33 +234,73 @@ class ComputingCenter(object):
         return False
     
     def methodMonteCarlo(self, indexTarget, indSensors):
-        numShots = 1000
-        
         #find boundary
-        x_c, y_c, size = self.createIntersectionBoundary(indexTarget)
+        x_c, y_c, size = self.createIntersectionBoundary(indexTarget, indSensors)
+        print 'xy', x_c, y_c, 'size = ', size
+        boundaryVol = np.power(size, 2)
+        numShots = 10 * boundaryVol
         
-        a = np.random.uniform(x_c-size, y_c-size, numShots)
-        b = np.random.uniform(x_c-size, y_c-size, numShots)
+        a = np.random.uniform(x_c-size/2, x_c+size/2, numShots)
+        b = np.random.uniform(y_c-size/2, y_c+size/2, numShots)
         
         counter = 0
         for x, y in zip(a, b):
             #count those points that belong to all ellipses at once
             if all(self.inEllipse(np.array([x, y]), self.neighborhoods[indexTarget, j]) for j in indSensors):
                 counter += 1
-        volume = counter / numShots * np.power(size, 2)
+        volume = float(counter) / numShots * boundaryVol
         return volume
 
     def bruteForce(self):
-        numSensors = self.getNumSensors()
-        num = np.power(2, numSensors)
-        
-        for i in range(1, num):
-            indsSensors = []
-            for j in range(numSensors):
-                if i & (1 << j):
-                    indsSensors.append(j)
-            print indsSensors[:]
-
+        numSensors = self.getNumSensors
+        numTargets = self.getNumTargets
+        try:
+            now = datetime.datetime.now()
+            now = now.strftime("%Y-%m-%d %H-%M-%S")
+            name = now.__str__() + ' brute force.txt'
+            with open(name, "a+") as file_handler:
+                numSpaceSubsets = numSensors * 3 + 2                
+                line = 'subsets' + ' ' * max((numSpaceSubsets - 7), 0)
+                numSpaceSubsets = len(line)
+                
+                spaceTargetSec = 11
+                line += '|target' + (spaceTargetSec * numTargets - 7) * ' ' +  '|Total volume\n'
+                bondaryBtm = len(line) * '-' + '\n'        
+                line += bondaryBtm
+                
+                line += numSpaceSubsets * ' ' 
+                for l in range(numTargets):
+                    line += '|' + l.__str__() + (spaceTargetSec - 1 - len(l.__str__())) *' ' 
+                line += '|\n'
+                line += bondaryBtm
+                file_handler.writelines(line)
+                #brute force___________________________________________________
+                num = np.power(2, numSensors)
+                for k in range(1, num):
+                    indsSensors = []
+                    for j in range(numSensors):
+                        if k & (1 << j):
+                            indsSensors.append(j)
+                    print indsSensors[:]
+                    tempN = numSpaceSubsets - len(indsSensors[:].__str__()) 
+                    line = indsSensors[:].__str__() + tempN * ' '
+                    file_handler.write(line)
+                    summ = 0
+                    for i in range(numTargets):
+                        vol = self.methodMonteCarlo(i, indsSensors)
+                        summ += vol
+                        print 'target', i, ' vol = ', vol
+                        volStr = '%0.4f' % vol
+                        tempN = spaceTargetSec - 1 - len(volStr)
+                        line = '|' + volStr + tempN * ' '
+                        file_handler.write(line)
+                    summStr = '%0.4f' % summ 
+                    line = '|' +  summStr +'\n'
+                    file_handler.write(line)
+                #end brute force_______________________________________________
+        except IOError:
+            print("An IOError has occurred!")    
+                        
     def getIntersectionEllipses0(self):#don't work!
         self.intersections = []
         #angle in rad
