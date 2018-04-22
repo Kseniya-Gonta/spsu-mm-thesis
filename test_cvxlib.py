@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Apr 12 01:49:51 2018
-
 @author: user
 """
 
@@ -30,6 +29,7 @@ x1 = np.array([0.5, -0.5])
 R = np.array([[np.cos(np.radians(angleDeg)), -np.sin(np.radians(angleDeg))],
               [np.sin(np.radians(angleDeg)), np.cos(np.radians(angleDeg))]])
 Q = np.dot(np.dot(R, p1), np.transpose(R))
+
 print 'Q1', Q
 pattern = patches.Ellipse((x1[0], x1[1]), 2*p1[0][0], 2*p1[1][1], angleDeg, 
                            edgecolor = 'crimson', fill=False)
@@ -47,14 +47,39 @@ x2 = np.array([0.5, 0.5])
 R = np.array([[np.cos(np.radians(angleDeg)), -np.sin(np.radians(angleDeg))],
               [np.sin(np.radians(angleDeg)), np.cos(np.radians(angleDeg))]])
 Q = np.dot(np.dot(R, p2), np.transpose(R))
+#-------------------------------------------------
+angle_test = -0.5*np.arctan2(2*Q[0][1],Q[1][1]-Q[0][0])
+print 'angle_test', np.degrees(angle_test)
+#-------------------------------------------------
 print 'Q2', Q
 pattern = patches.Ellipse((x2[0], x2[1]), 2*p2[0][0], 2*p2[1][1], angleDeg, edgecolor = 'mediumorchid', fill=False)
 axes.add_artist(pattern)
 a2 = c.Ellipse()
 a2.initByAm(Q, x2)
 
+#______________________________________________________________________________
+#ellipse3
+#Q = np.array([[.3283, 0.1607],
+#              [.1607, 1.2117]])
+angleDeg = -90
+p3 = np.array([[1.12, 0],
+               [0, 0.5]])
+x3 = np.array([1, -0.5])
+R = np.array([[np.cos(np.radians(angleDeg)), -np.sin(np.radians(angleDeg))],
+              [np.sin(np.radians(angleDeg)), np.cos(np.radians(angleDeg))]])
+Q = np.dot(np.dot(R, p3), np.transpose(R))
+#-------------------------------------------------
+angle_test = -0.5*np.arctan2(2*Q[0][1],Q[1][1]-Q[0][0])
+print 'angle_test', np.degrees(angle_test)
+#-------------------------------------------------
+print 'Q3', Q
+pattern = patches.Ellipse((x3[0], x3[1]), 2*p3[0][0], 2*p3[1][1], angleDeg, edgecolor = 'darkgreen', fill=False)
+axes.add_artist(pattern)
+a3 = c.Ellipse()
+a3.initByAm(Q, x3)
+
 #find intersection
-ellipses = [a1, a2]
+ellipses = [a1, a2, a3]
 D = c.findIntersection(ellipses)
 print 'D', D.P, D.x_c
 
