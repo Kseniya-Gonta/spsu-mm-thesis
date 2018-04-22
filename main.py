@@ -147,16 +147,20 @@ class MainWindow(QtGui.QWidget):
         self.timeDisplay.setNum(self.time)
     
     def initAgent(self):
-        target1 = a.AgentTarget(100, 150, 10, 0)
-        #target2 = a.AgentTarget(250, 100, -25, 0)
-        self.targets = [target1]
+        target1 = a.AgentTarget(70, 150, 10, 0)
+        target2 = a.AgentTarget(100, 130, 10, -5)
+        target3 = a.AgentTarget(120, 160, 1, 1)
+        target4 = a.AgentTarget(250, 120, -10, 5)
+        self.targets = [target1, target2, target3, target4]
  
         errLength = float(self.edit_errOfLen.text())
         errAngle = float(self.edit_errOfAngle.text())
         sensor1 = a.AgentSensor(50, 50, 0, 0, errLength, errAngle)
-        #sensor2 = a.AgentSensor(100, 60, 0, 0, errLength, errAngle)  
-        sensor3 = a.AgentSensor(200, 25, 0, 0, errLength, errAngle)
-        self.sensors = [sensor1, sensor3]
+        sensor2 = a.AgentSensor(100, 60, 0, 0, errLength, errAngle)  
+        sensor3 = a.AgentSensor(120, 25, 0, 0, errLength, errAngle)
+        sensor4 = a.AgentSensor(150, 35, 0, 0, errLength, errAngle)
+        sensor5 = a.AgentSensor(200, 10, 0, 0, errLength, errAngle)
+        self.sensors = [sensor1, sensor2, sensor3, sensor4, sensor5]
         
         
     def agentsMove(self):
@@ -175,12 +179,17 @@ class MainWindow(QtGui.QWidget):
     def findIntersection(self):
         self.center.getIntersectionEllipses()
         
+    def findIntersectionVol(self):
+        self.center.bruteForce()
+        
+        
     def timerTick(self):
         self.changeTimeOnDisplay()
         self.agentsMove()
         self.observe()
         self.sendToCenter()
-        self.findIntersection()
+        self.findIntersectionVol()
+        #self.findIntersection()
         self.plot2()
         
     def bt_pauseClicked(self):
@@ -260,12 +269,12 @@ class MainWindow(QtGui.QWidget):
                     axes.add_patch(neighborhood)
                     
         #add intersection
-        clr = self.colors[len(self.targets)]        
-        for i in range(len(self.targets)):
-            intersection = self.center.createPathesIntersection(i, clr)
-            axes.add_patch(intersection)
-            xCenter, yCenter, size = self.center.createIntersectionBoundary(i)
-            print 'bondary', xCenter, yCenter, size
+#        clr = self.colors[len(self.targets)]        
+#        for i in range(len(self.targets)):
+#            intersection = self.center.createPathesIntersection(i, clr)
+#            axes.add_patch(intersection)
+                    
+                    
 #        indexSensor = 0
 #        for dataBySensor in self.center.dataOfTargets:
 #            indexTarget = 0
