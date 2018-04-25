@@ -209,6 +209,7 @@ class ComputingCenter(object):
         size = 2 * max(Q[0, 0], Q[1, 1])
         xCenter, yCenter = e.x_c
         return xCenter, yCenter, size
+    
         
     #outer boundary, result - square, create by confidence ellipses
     def createIntersectionBoundary(self, indexTarget, indsSensors):
@@ -250,6 +251,54 @@ class ComputingCenter(object):
                 counter += 1
         volume = float(counter) / numShots * boundaryVol
         return volume
+        
+    def solveByLMI(self, alpha):
+        resourceMatrix, self.outerEllipses = cvx.distributeSensors(self.neighborhoods, alpha)
+        print 'resourceMatrix', resourceMatrix
+#    def solveByLMI(self):
+#        numSensors = self.getNumSensors
+#        numTargets = self.getNumTargets
+#        try:
+#            now = datetime.datetime.now()
+#            now = now.strftime("%Y-%m-%d %H-%M-%S")
+#            name = now.__str__() + ' LMI.txt'
+#            with open(name, "a+") as file_handler:
+#                numSpaceSubsets = numSensors * 3 + 2                
+#                line = 'subsets' + ' ' * max((numSpaceSubsets - 7), 0)
+#                numSpaceSubsets = len(line)
+#                
+#                spaceTargetSec = 11
+#                line += '|target' + (spaceTargetSec * numTargets - 7) * ' ' +  '|Total volume\n'
+#                bondaryBtm = len(line) * '-' + '\n'        
+#                line += bondaryBtm
+#                
+#                line += numSpaceSubsets * ' ' 
+#                for l in range(numTargets):
+#                    line += '|' + l.__str__() + (spaceTargetSec - 1 - len(l.__str__())) *' ' 
+#                line += '|\n'
+#                line += bondaryBtm
+#                file_handler.writelines(line)
+#                #LMI___________________________________________________________
+#                indsSensors = []
+#                print indsSensors[:]
+#                tempN = numSpaceSubsets - len(indsSensors[:].__str__()) 
+#                line = indsSensors[:].__str__() + tempN * ' '
+#                file_handler.write(line)
+#                summ = 0
+#                for i in range(numTargets):
+#                    vol = self.methodMonteCarlo(i, indsSensors)
+#                    summ += vol
+#                    print 'target', i, ' vol = ', vol
+#                    volStr = '%0.4f' % vol
+#                    tempN = spaceTargetSec - 1 - len(volStr)
+#                    line = '|' + volStr + tempN * ' '
+#                    file_handler.write(line)
+#                summStr = '%0.4f' % summ 
+#                line = '|' +  summStr +'\n'
+#                file_handler.write(line)
+#                #end LMI_______________________________________________________
+#        except IOError:
+#            print("An IOError has occurred!")    
 
     def bruteForce(self):
         numSensors = self.getNumSensors
