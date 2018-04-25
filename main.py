@@ -44,9 +44,9 @@ class MainWindow(QtGui.QWidget):
         self.connect(bt_pause, QtCore.SIGNAL('clicked()'), self.bt_pauseClicked)
         l_groupRButton = QtGui.QLabel('Choose an algorithm:')
         nameOfAlgorithms = ['brute force', 'by LMI']
-        rb_algorithm1 = QtGui.QRadioButton(nameOfAlgorithms[0])
-        rb_algorithm2 = QtGui.QRadioButton(nameOfAlgorithms[1])
-        rb_algorithm2.toggle()
+        self.rb_algorithm1 = QtGui.QRadioButton(nameOfAlgorithms[0])
+        self.rb_algorithm2 = QtGui.QRadioButton(nameOfAlgorithms[1])
+        self.rb_algorithm2.toggle()
        
         l_show = QtGui.QLabel('Show:')
         self.chb_neighborhood = QtGui.QCheckBox('the neighborhood')
@@ -89,8 +89,8 @@ class MainWindow(QtGui.QWidget):
         sublayoutOptions.addSpacing(space)
                 
         sublayoutOptions.addWidget(l_groupRButton)
-        sublayoutOptions.addWidget(rb_algorithm1)
-        sublayoutOptions.addWidget(rb_algorithm2)
+        sublayoutOptions.addWidget(self.rb_algorithm1)
+        sublayoutOptions.addWidget(self.rb_algorithm2)
         sublayoutOptions.addSpacing(space)
                 
         sublayoutOptions.addWidget(l_show)
@@ -160,8 +160,7 @@ class MainWindow(QtGui.QWidget):
         sensor3 = a.AgentSensor(120, 25, 0, 0, errLength, errAngle)
         sensor4 = a.AgentSensor(150, 35, 0, 0, errLength, errAngle)
         sensor5 = a.AgentSensor(200, 10, 0, 0, errLength, errAngle)
-        self.sensors = [sensor1, sensor2, sensor3, sensor4, sensor5]
-        
+        self.sensors = [sensor1, sensor2, sensor3, sensor4, sensor5]       
         
     def agentsMove(self):
         for target in self.targets: 
@@ -177,19 +176,29 @@ class MainWindow(QtGui.QWidget):
         self.center.getDataFromSensors(self.sensors)
     
     def findIntersection(self):
-        self.center.getIntersectionEllipses()
+        if self.rb_algorithm2.isChecked():
+            alpha = 5
+            self.center.solveByLMI(alpha)
+#            try:
+#                self.center.solveByLMI(alpha)
+#            except Exception:
+#                print 'LMI don\'t work :c'
+#                print Exception
+        else: 
+            self.center.bruteForce()
+            
+        #self.center.getIntersectionEllipses()
         
     def findIntersectionVol(self):
         self.center.bruteForce()
-        
-        
+             
     def timerTick(self):
         self.changeTimeOnDisplay()
         self.agentsMove()
         self.observe()
         self.sendToCenter()
-        self.findIntersectionVol()
-        #self.findIntersection()
+        #self.findIntersectionVol()
+        self.findIntersection()
         self.plot2()
         
     def bt_pauseClicked(self):
