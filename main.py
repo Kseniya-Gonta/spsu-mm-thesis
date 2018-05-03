@@ -43,9 +43,10 @@ class MainWindow(QtGui.QWidget):
         bt_pause =  QtGui.QPushButton('pause')
         self.connect(bt_pause, QtCore.SIGNAL('clicked()'), self.bt_pauseClicked)
         l_groupRButton = QtGui.QLabel('Choose an algorithm:')
-        nameOfAlgorithms = ['brute force', 'by LMI']
+        nameOfAlgorithms = ['brute force', 'by LMI', 'compare']
         self.rb_algorithm1 = QtGui.QRadioButton(nameOfAlgorithms[0])
         self.rb_algorithm2 = QtGui.QRadioButton(nameOfAlgorithms[1])
+        self.rb_algorithm3 = QtGui.QRadioButton(nameOfAlgorithms[2])
         self.rb_algorithm2.toggle()
        
         l_show = QtGui.QLabel('Show:')
@@ -58,6 +59,9 @@ class MainWindow(QtGui.QWidget):
         l_numOfTargets = QtGui.QLabel('num of targets:')
         l_errOfLength = QtGui.QLabel('Error, length, %:')
         l_errOfAngle = QtGui.QLabel('Error, angle, deg:')
+
+        self.chb_stopAfterStep = QtGui.QCheckBox('stop after step')        
+        self.chb_stopAfterStep.toggle()
         
         self.edit_numOfSensors = QtGui.QLineEdit('2')
         maxSizeWidgets = self.edit_numOfSensors.sizeHint()
@@ -68,11 +72,11 @@ class MainWindow(QtGui.QWidget):
         self.edit_numOfTargets.setFixedSize(maxSizeWidgets)
         self.edit_numOfTargets.setMaxLength(4)
         
-        self.edit_errOfLen = QtGui.QLineEdit('5')
+        self.edit_errOfLen = QtGui.QLineEdit('1')
         self.edit_errOfLen.setFixedSize(maxSizeWidgets)
         self.edit_errOfLen.setMaxLength(3)
         
-        self.edit_errOfAngle = QtGui.QLineEdit('0.9')   
+        self.edit_errOfAngle = QtGui.QLineEdit('0.3')   
         self.edit_errOfAngle.setFixedSize(maxSizeWidgets)
        
 #________________________________________________________
@@ -91,6 +95,7 @@ class MainWindow(QtGui.QWidget):
         sublayoutOptions.addWidget(l_groupRButton)
         sublayoutOptions.addWidget(self.rb_algorithm1)
         sublayoutOptions.addWidget(self.rb_algorithm2)
+        sublayoutOptions.addWidget(self.rb_algorithm3)
         sublayoutOptions.addSpacing(space)
                 
         sublayoutOptions.addWidget(l_show)
@@ -98,6 +103,7 @@ class MainWindow(QtGui.QWidget):
         sublayoutOptions.addSpacing(space)
         
         sublayoutOptions.addWidget(l_parameters)
+        sublayoutOptions.addWidget(self.chb_stopAfterStep)
         sublayoutOptions.addWidget(l_numOfSensors)
         sublayoutOptions.addWidget(self.edit_numOfSensors)
         sublayoutOptions.addWidget(l_numOfTargets)
@@ -110,7 +116,7 @@ class MainWindow(QtGui.QWidget):
          
         grid = QtGui.QGridLayout()
         grid.setSpacing(10)
-        grid.addLayout(sublayoutOptions, 0, 0, 21, 1)
+        grid.addLayout(sublayoutOptions, 0, 0, 23, 1)
        
 #_________________________________________________________     
          # a figure instance to plot on
@@ -176,18 +182,27 @@ class MainWindow(QtGui.QWidget):
         self.center.getDataFromSensors(self.sensors)
     
     def findIntersection(self):
+        alpha = 0.1
         if self.rb_algorithm2.isChecked():
-            alpha = 5
-            self.center.solveByLMI(alpha)
-#            try:
-#                self.center.solveByLMI(alpha)
-#            except Exception:
-#                print 'LMI don\'t work :c'
-#                print Exception
-        else: 
+            #self.center.solveByLMI(alpha)
+            try:
+                self.center.solveByLMI(alpha)
+            except Exception:
+                print 'LMI don\'t work :c'
+                print Exception
+        elif self.rb_algorithm1.isChecked(): 
             self.center.bruteForce()
+        elif self.rb_algorithm3.isChecked():
+            try:
+                self.center.solveByLMI(alpha)
+                self.center.bruteForce()
+            except Exception:
+                print 'LMI don\'t work :c'
+                print Exception
+                
+        if self.chb_stopAfterStep.isChecked():
+            self.timer.stop()
             
-        #self.center.getIntersectionEllipses()
         
     def findIntersectionVol(self):
         self.center.bruteForce()
@@ -278,10 +293,10 @@ class MainWindow(QtGui.QWidget):
                     axes.add_patch(neighborhood)
                     
         #add intersection
-#        clr = self.colors[len(self.targets)]        
-#        for i in range(len(self.targets)):
-#            intersection = self.center.createPathesIntersection(i, clr)
-#            axes.add_patch(intersection)
+        clr = 'red'       
+        for i in range(len(self.targets)):
+            intersection = self.center.createPathesIntersection(i, clr)
+            axes.add_patch(intersection)
                     
                     
 #        indexSensor = 0

@@ -26,6 +26,14 @@ class Ellipse:
         temp = np.dot(np.dot(self.b.T, np.linalg.matrix_power(self.A, -1)), self.b) 
         self.P = np.dot(np.sqrt(temp - self.c), f_matrix_power(self.A, -0.5))
         self.x_c = np.dot(-np.linalg.matrix_power(self.A, -1), self.b)
+        
+def getEllipseVolume(e):
+    angle = -0.5 * np.arctan2(2*e.P[0][1], e.P[1][1]-e.P[0][0])
+    R = np.array([[np.cos(angle), np.sin(angle)],
+                  [-np.sin(angle), np.cos(angle)]])
+    Q = np.dot(np.dot(R, e.P), np.transpose(R))
+    volume = np.pi * Q[0, 0] * Q[1, 1] 
+    return volume
 
 def distributeSensors(ellipses, alpha):
     #Set the number of paramers

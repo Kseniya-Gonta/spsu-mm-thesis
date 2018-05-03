@@ -255,6 +255,37 @@ class ComputingCenter(object):
     def solveByLMI(self, alpha):
         resourceMatrix, self.outerEllipses = cvx.distributeSensors(self.neighborhoods, alpha)
         print 'resourceMatrix', resourceMatrix
+        try:
+            now = datetime.datetime.now()
+            now = now.strftime("%Y-%m-%d %H-%M-%S")
+            name = now.__str__() + ' LMI.txt'
+            with open(name, "a+") as file_handler:
+                numTargets = self.getNumTargets
+                line = 'resource matrix = \n'
+                line += resourceMatrix.__str__() + '\n'
+                
+                spaceTargetSec = 11
+                bondaryBtm =  numTargets * spaceTargetSec * '-' + '\n'
+                line += bondaryBtm
+                line += '|target' + (spaceTargetSec * numTargets - 7) * ' ' +  '|Total volume\n'
+                
+                for l in range(numTargets):
+                    line += '|' + l.__str__() + (spaceTargetSec - 1 - len(l.__str__())) * ' ' 
+                line += '\n' + bondaryBtm
+                
+                summ = 0
+                for i in range(numTargets):
+                    vol = cvx.getEllipseVolume(self.outerEllipses[i])
+                    summ += vol
+                    volStr = '%0.4f' % vol
+                    tempN = spaceTargetSec - 1 - len(volStr)
+                    line += '|' + volStr + tempN * ' '
+                line += '|' + '%0.4f' % summ + '\n' + bondaryBtm
+                file_handler.writelines(line)
+                
+        except IOError:
+            print("An IOError has occurred!")
+
 #    def solveByLMI(self):
 #        numSensors = self.getNumSensors
 #        numTargets = self.getNumTargets
@@ -274,7 +305,7 @@ class ComputingCenter(object):
 #                
 #                line += numSpaceSubsets * ' ' 
 #                for l in range(numTargets):
-#                    line += '|' + l.__str__() + (spaceTargetSec - 1 - len(l.__str__())) *' ' 
+#                    line += '|' + l.__str__() + (spaceTargetSec - 1 - len(l.__str__())) * ' ' 
 #                line += '|\n'
 #                line += bondaryBtm
 #                file_handler.writelines(line)
