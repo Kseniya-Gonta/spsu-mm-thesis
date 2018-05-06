@@ -34,6 +34,11 @@ class MainWindow(QtGui.QWidget):
         self.setWindowIcon(QtGui.QIcon('icons/network.png'))
        
         #the first column of widgets in the grid
+        l_input = QtGui.QLabel('Input:')
+        self.rb_input_out = QtGui.QRadioButton('Host name')
+        self.rb_input_in  = QtGui.QRadioButton('Simulation')
+        self.rb_input_in.toggle()
+       
         l_time = QtGui.QLabel('Discrete time:')
         self.timeDisplay = QtGui.QLabel('0')
         self.timeDisplay.setStyleSheet('border-style: solid; border-width: 1px; border-color: lightgray;')
@@ -50,8 +55,12 @@ class MainWindow(QtGui.QWidget):
         self.rb_algorithm2.toggle()
        
         l_show = QtGui.QLabel('Show:')
-        self.chb_neighborhood = QtGui.QCheckBox('the neighborhood')
+        self.chb_neighborhood = QtGui.QCheckBox('the neighborhoods')
         self.chb_neighborhood.toggle()
+        self.chb_prevMeasurement = QtGui.QCheckBox('previous measurements')
+        self.chb_prevMeasurement.toggle()
+        self.chb_track = QtGui.QCheckBox('object track')
+        self.chb_track.toggle()
         #self.chb_neighborhood.stateChanged.connect()
        
         l_parameters = QtGui.QLabel('Parameters:')
@@ -83,6 +92,10 @@ class MainWindow(QtGui.QWidget):
         space = 13        
         sublayoutOptions = QtGui.QVBoxLayout()
         sublayoutOptions.setSpacing(2)
+
+        sublayoutOptions.addWidget(l_input)
+        sublayoutOptions.addWidget(self.rb_input_in)
+        sublayoutOptions.addWidget(self.rb_input_out)
         
         sublayoutOptions.addWidget(l_time) 
         sublayoutOptions.addWidget(self.timeDisplay)
@@ -100,6 +113,8 @@ class MainWindow(QtGui.QWidget):
                 
         sublayoutOptions.addWidget(l_show)
         sublayoutOptions.addWidget(self.chb_neighborhood)
+        sublayoutOptions.addWidget(self.chb_prevMeasurement)
+        sublayoutOptions.addWidget(self.chb_track)
         sublayoutOptions.addSpacing(space)
         
         sublayoutOptions.addWidget(l_parameters)
@@ -153,10 +168,10 @@ class MainWindow(QtGui.QWidget):
         self.timeDisplay.setNum(self.time)
     
     def initAgent(self):
-        target1 = a.AgentTarget(70, 150, 10, 0)
-        target2 = a.AgentTarget(100, 130, 10, -5)
-        target3 = a.AgentTarget(120, 160, 1, 1)
-        target4 = a.AgentTarget(250, 120, -10, 5)
+        target1 = a.AgentTarget(70, 210, 3, 0)
+        target2 = a.AgentTarget(100, 190, 3, -1)
+        target3 = a.AgentTarget(120, 220, 1, 1)
+        target4 = a.AgentTarget(250, 180, -3, 1)
         self.targets = [target1, target2, target3, target4]
  
         errLength = float(self.edit_errOfLen.text())
@@ -274,11 +289,24 @@ class MainWindow(QtGui.QWidget):
             pattern = patches.Ellipse((sensor.x, sensor.y), width, height, 0, facecolor='indianred', edgecolor='firebrick', linewidth=1)
             axes.add_patch(pattern)
         
+        clr = 'steelblue'
         for target in self.targets:
             pattern = patches.Ellipse((target.x, target.y), width, height, 0, facecolor='powderblue', edgecolor='steelblue', linewidth=1)
             arrow = patches.Arrow(target.x, target.y, target.dx / abs(target.dx) * height, target.dy / abs(target.dx) * height, lenArrow, color='steelblue')        
             axes.add_patch(pattern)
             axes.add_patch(arrow)
+            if self.chb_track.isChecked():
+                for p in target.track:
+                    point = patches.Ellipse((p.x, p.y), 1, 1, color=clr, linewidth=1)
+                    axes.add_patch(point)
+                
+            
+        #add previous measurement
+        if self.chb_prevMeasurement.isChecked():
+            clr = 'lightcoral'
+            for m in self.center.prevMeasurement:
+                point = patches.Ellipse((m.x, m.y), 1, 1, color=clr, linewidth=1)
+                axes.add_patch(point)
             
         #add measurement
         for indexSensor in range(len(self.sensors)):
