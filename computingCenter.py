@@ -18,6 +18,7 @@ class ComputingCenter(object):
         #self._dataOfTargets = [] #list of sensor's measurements vectors
         #2d array of cvx.Ellipse, where i row - target i, j column - j sensor
         self._neighborhoods = []
+        self._prevMeasurements = []
         self._ellipses = []
         self._outerEllipses = []
 
@@ -52,6 +53,14 @@ class ComputingCenter(object):
     @intersections.setter
     def intersections(self, value):
         self._ellipses = value
+        
+    @property
+    def prevMeasurement(self):
+        return self._prevMeasurements
+   
+    @prevMeasurement.setter
+    def prevMeasurement(self, value):
+        self._prevMeasurements = value
     
     def xOfTarget(self, indexTarget, indexSensor):
         return self._neighborhoods[indexTarget][indexSensor].x_c[0]
@@ -82,6 +91,7 @@ class ComputingCenter(object):
             i = 0
             for target in sensor.measurements:
                 point  = target.polarPoint.polarToCartesian(sensor.point)
+                self._prevMeasurements.append(point)
                 self._neighborhoods[i, j] = self.createEllipse(target, point.point)
                 i += 1
             j += 1
