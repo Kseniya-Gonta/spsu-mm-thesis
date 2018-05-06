@@ -59,6 +59,7 @@ class Agent(object):
     def __init__(self, x, y, dx, dy):
         """Constructor"""
         self._point = Point(x, y)
+        self._track = []
         self._speed = Point(dx, dy)
    
     @property
@@ -80,20 +81,31 @@ class Agent(object):
     @property
     def point(self):
         return self._point
+    
+    @property
+    def track(self):
+        return self._track
    
     def move(self):
         #x = (-self.y*(np.power(self.x, 2) + np.power(self.y, 2))*self.dx)/(self.x*(self.x+np.power(self.y, 2)))
         #y = (np.power(self.x, 2) + np.power(self.y, 2))*self.dx/(self.x+np.power(self.y, 2))
         #temp = Point(x, y)
         #self._point.add(temp)
+        prevPoint = Point(self._point.x, self._point.y)
+        self._track.append(prevPoint)
         self._point.add(self._speed)
-   
        
 class AgentTarget(Agent):
    
     def __init__(self, x, y, dx, dy):
         """Constructor"""
         super(AgentTarget, self).__init__(x, y, dx, dy)
+    
+    def move(self):
+        super(AgentTarget, self).move()
+        deviation = 5
+        w = Point(np.random.normal(scale = deviation), np.random.normal(scale = deviation))
+        self._point.add(w)
  
 class AgentSensor(Agent):
    
