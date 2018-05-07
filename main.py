@@ -15,6 +15,7 @@ from matplotlib.figure import Figure
 from matplotlib import patches
 
 import agent as a
+import report as r
 import computingCenter as cc
 
 from math import degrees
@@ -30,14 +31,22 @@ class MainWindow(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
  
-        self.setWindowTitle('task visualization')
+        self.setWindowTitle('OSSDAS')
         self.setWindowIcon(QtGui.QIcon('icons/network.png'))
        
         #the first column of widgets in the grid
         l_input = QtGui.QLabel('Input:')
         self.rb_input_out = QtGui.QRadioButton('Host name')
+        self.rb_input_out.clicked.connect(self.showDialogFile)
+     
         self.rb_input_in  = QtGui.QRadioButton('Simulation')
         self.rb_input_in.toggle()
+        self.rb_input_in.clicked.connect(self.simulationModeOn)
+        
+        self.l_input_out_path = QtGui.QLabel('there is no path')
+        self.l_input_out_path.setStyleSheet("""border-style: solid; border-width: 1px;  
+                                            border-color: lightgray; 
+                                            background-color: rgb(226, 226, 226)""")  
        
         l_time = QtGui.QLabel('Discrete time:')
         self.timeDisplay = QtGui.QLabel('0')
@@ -96,6 +105,8 @@ class MainWindow(QtGui.QWidget):
         sublayoutOptions.addWidget(l_input)
         sublayoutOptions.addWidget(self.rb_input_in)
         sublayoutOptions.addWidget(self.rb_input_out)
+        sublayoutOptions.addWidget(self.l_input_out_path)
+        sublayoutOptions.addSpacing(space)
         
         sublayoutOptions.addWidget(l_time) 
         sublayoutOptions.addWidget(self.timeDisplay)
@@ -162,6 +173,30 @@ class MainWindow(QtGui.QWidget):
     
     def bt_startClicked(self):
         self.timer.start()
+    
+    def simulationModeOn(self):
+        self.l_input_out_path.setText('there is no path')
+        self.l_input_out_path.setStyleSheet("""border-style: solid; border-width: 1px;  
+                                                border-color: lightgray; 
+                                                background-color: rgb(226, 226, 226)""")
+        
+    def showDialogFile(self):
+        try:
+            defPath = 'D:\\\\'
+            fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file', defPath)
+            if len(fname) == 0:
+                self.rb_input_in.toggle()
+            else:
+                self.l_input_out_path.setStyleSheet("""border-style: solid; border-width: 1px;  
+                                                    border-color: lightgray; 
+                                                    background-color: rgb(255, 255, 255)""")
+                self.l_input_out_path.setText(fname[0:15] + '...')     
+            #testcode
+            self.report = r.ReportWindow()  
+            self.report.show()                              
+        except:
+            self.rb_input_in.toggle()
+            self.simulationModeOn()
         
     def changeTimeOnDisplay(self):
         self.time += 1
