@@ -18,7 +18,7 @@ import agent as a
 import report as r
 import computingCenter as cc
 
-from math import degrees
+from numpy.random import uniform
  
 class MainWindow(QtGui.QWidget):
     time = 0
@@ -31,7 +31,7 @@ class MainWindow(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
  
-        self.setWindowTitle('OSSDAS')
+        self.setWindowTitle('OSDASS - Optimization of Sensors Distribution Among the Signals Sources')
         self.setWindowIcon(QtGui.QIcon('icons/network.png'))
        
         #the first column of widgets in the grid
@@ -48,7 +48,7 @@ class MainWindow(QtGui.QWidget):
                                             border-color: lightgray; 
                                             background-color: rgb(226, 226, 226)""")  
        
-        l_time = QtGui.QLabel('Discrete time:')
+        l_time = QtGui.QLabel('Time:')
         self.timeDisplay = QtGui.QLabel('0')
         self.timeDisplay.setStyleSheet('border-style: solid; border-width: 1px; border-color: lightgray;')
  
@@ -66,36 +66,66 @@ class MainWindow(QtGui.QWidget):
         l_show = QtGui.QLabel('Show:')
         self.chb_neighborhood = QtGui.QCheckBox('the neighborhoods')
         self.chb_neighborhood.toggle()
-        self.chb_prevMeasurement = QtGui.QCheckBox('previous measurements')
+        self.chb_neighborhood.stateChanged.connect(self.plot2)
+        
+        self.chb_prevMeasurement = QtGui.QCheckBox('prev observations')
         self.chb_prevMeasurement.toggle()
+        self.chb_prevMeasurement.stateChanged.connect(self.plot2)
+
         self.chb_track = QtGui.QCheckBox('object track')
         self.chb_track.toggle()
-        #self.chb_neighborhood.stateChanged.connect()
-       
-        l_parameters = QtGui.QLabel('Parameters:')
+        self.chb_track.stateChanged.connect(self.plot2)
+
+        l_parameters   = QtGui.QLabel('Parameters:')
+        l_lmiAlpha     = QtGui.QLabel('LMI - alpha:')
         l_numOfSensors = QtGui.QLabel('num of sensors:')
         l_numOfTargets = QtGui.QLabel('num of targets:')
-        l_errOfLength = QtGui.QLabel('Error, length, %:')
-        l_errOfAngle = QtGui.QLabel('Error, angle, deg:')
+        l_errOfLength  = QtGui.QLabel('Error, length, %:')
+        l_errOfAngle   = QtGui.QLabel('Error, angle, deg:')
 
         self.chb_stopAfterStep = QtGui.QCheckBox('stop after step')        
         self.chb_stopAfterStep.toggle()
         
-        self.edit_numOfSensors = QtGui.QLineEdit('2')
+        self.validatorInt = QtGui.QIntValidator()
+        self.validatorDbl = QtGui.QDoubleValidator()        
+        
+        self.edit_numOfSensors = QtGui.QLineEdit('5')
         maxSizeWidgets = self.edit_numOfSensors.sizeHint()
         self.edit_numOfSensors.setFixedSize(maxSizeWidgets)
         self.edit_numOfSensors.setMaxLength(4)
+        self.edit_numOfSensors.setValidator(self.validatorInt)
+        self.edit_numOfSensors.textChanged.connect(self.check_state)
+        self.edit_numOfSensors.textChanged.emit(self.edit_numOfSensors.text())
         
-        self.edit_numOfTargets = QtGui.QLineEdit('1')
+        self.edit_lmiAlpha = QtGui.QLineEdit('1')  
+        self.edit_lmiAlpha.setFixedSize(maxSizeWidgets)
+        self.edit_lmiAlpha.setMaxLength(4)
+        self.edit_lmiAlpha.setValidator(self.validatorDbl)
+        self.edit_lmiAlpha.textChanged.connect(self.check_state)
+        self.edit_lmiAlpha.textChanged.emit(self.edit_lmiAlpha.text())
+        
+        self.edit_numOfTargets = QtGui.QLineEdit('4')
         self.edit_numOfTargets.setFixedSize(maxSizeWidgets)
         self.edit_numOfTargets.setMaxLength(4)
+        self.edit_numOfTargets.setValidator(self.validatorInt)
+        self.edit_numOfTargets.textChanged.connect(self.check_state)
+        self.edit_numOfTargets.textChanged.emit(self.edit_numOfTargets.text())
         
         self.edit_errOfLen = QtGui.QLineEdit('1')
         self.edit_errOfLen.setFixedSize(maxSizeWidgets)
         self.edit_errOfLen.setMaxLength(3)
+        self.edit_errOfLen.setValidator(self.validatorDbl)
+        self.edit_errOfLen.textChanged.connect(self.check_state)
+        self.edit_errOfLen.textChanged.emit(self.edit_errOfLen.text())
         
         self.edit_errOfAngle = QtGui.QLineEdit('0.3')   
         self.edit_errOfAngle.setFixedSize(maxSizeWidgets)
+        self.edit_errOfAngle.setValidator(self.validatorDbl)
+        self.edit_errOfAngle.textChanged.connect(self.check_state)
+        self.edit_errOfAngle.textChanged.emit(self.edit_errOfAngle.text())
+        
+        self.bt_generate = QtGui.QPushButton('generate')
+        self.bt_generate.clicked.connect(self.initAgent)
        
 #________________________________________________________
         space = 13        
@@ -130,6 +160,8 @@ class MainWindow(QtGui.QWidget):
         
         sublayoutOptions.addWidget(l_parameters)
         sublayoutOptions.addWidget(self.chb_stopAfterStep)
+        sublayoutOptions.addWidget(l_lmiAlpha)
+        sublayoutOptions.addWidget(self.edit_lmiAlpha)
         sublayoutOptions.addWidget(l_numOfSensors)
         sublayoutOptions.addWidget(self.edit_numOfSensors)
         sublayoutOptions.addWidget(l_numOfTargets)
@@ -138,6 +170,7 @@ class MainWindow(QtGui.QWidget):
         sublayoutOptions.addWidget(self.edit_errOfLen)
         sublayoutOptions.addWidget(l_errOfAngle)
         sublayoutOptions.addWidget(self.edit_errOfAngle)
+        sublayoutOptions.addWidget(self.bt_generate)
 #_________________________________________________________  
          
         grid = QtGui.QGridLayout()
@@ -167,8 +200,8 @@ class MainWindow(QtGui.QWidget):
         self.resize(1000, 700)
 #____________________func_init____________________________
         self.initTimer()
-        self.initAgent()
-        self.plot()
+        #self.initAgent()
+        #self.plot()
         self.center = cc.ComputingCenter()
     
     def bt_startClicked(self):
@@ -179,8 +212,59 @@ class MainWindow(QtGui.QWidget):
         self.l_input_out_path.setStyleSheet("""border-style: solid; border-width: 1px;  
                                                 border-color: lightgray; 
                                                 background-color: rgb(226, 226, 226)""")
+        self.bt_generate.setEnabled(True)
+            
+    def check_state(self, *args, **kwargs):
+        sender = self.sender()
+        validator = sender.validator()
+        state = validator.validate(sender.text(), 0)[0]
+        if state == QtGui.QValidator.Acceptable:
+            color = '#c4df9b' # green
+        elif state == QtGui.QValidator.Intermediate:
+            color = '#fff79a' # yellow
+        else:
+            color = '#f6989d' # red
+        sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
+        
+    def generate(self):
+        numTarget = int(self.edit_numOfTargets.text())
+        numSensor = int(self.edit_numOfSensors.text())
+        incX = 10
+        lowLim_x, upLim_x = -3, 3
+        lowLim_y, upLim_y = -25, 30
+        
+        init_x, init_y, dx, dy = 10, 30, 0, 0
+        errLength = float(self.edit_errOfLen.text())
+        errAngle = float(self.edit_errOfAngle.text())
+        self.sensors = []
+        for j in range(numSensor):
+            r_x = uniform(lowLim_x, upLim_x)
+            r_y = uniform(lowLim_y, upLim_y)
+            init_x += incX
+            x = init_x + r_x
+            y = init_y + r_y
+            sensor = a.AgentSensor(x, y, dx, dy, errLength, errAngle)
+            self.sensors.append(sensor)
+            
+        init_x, init_y = 10, 200
+        lowLim_dx, upLim_dx = -3, 3
+        lowLim_dy, upLim_dy = -1, 1
+        self.targets = []
+        for i in range(numTarget):
+            r_x = uniform(lowLim_x, upLim_x)
+            r_y = uniform(lowLim_y, upLim_y)
+            r_dx = uniform(lowLim_dx, upLim_dx)
+            r_dy = uniform(lowLim_dy, upLim_dy)
+            init_x += incX
+            x = init_x + r_x
+            y = init_y + r_y
+            target = a.AgentTarget(x, y, r_dx, r_dy)
+            self.targets.append(target)
+        self.plot()
+            
         
     def showDialogFile(self):
+        self.bt_generate.setEnabled(False)
         try:
             defPath = 'D:\\\\'
             fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file', defPath)
@@ -207,8 +291,9 @@ class MainWindow(QtGui.QWidget):
         target2 = a.AgentTarget(100, 190, 3, -1)
         target3 = a.AgentTarget(120, 220, 1, 1)
         target4 = a.AgentTarget(250, 180, -3, 1)
+
         self.targets = [target1, target2, target3, target4]
- 
+        
         errLength = float(self.edit_errOfLen.text())
         errAngle = float(self.edit_errOfAngle.text())
         sensor1 = a.AgentSensor(50, 50, 0, 0, errLength, errAngle)
@@ -216,7 +301,9 @@ class MainWindow(QtGui.QWidget):
         sensor3 = a.AgentSensor(120, 25, 0, 0, errLength, errAngle)
         sensor4 = a.AgentSensor(150, 35, 0, 0, errLength, errAngle)
         sensor5 = a.AgentSensor(200, 10, 0, 0, errLength, errAngle)
-        self.sensors = [sensor1, sensor2, sensor3, sensor4, sensor5]       
+
+        self.sensors = [sensor1, sensor2, sensor3, sensor4, sensor5]
+        self.plot()          
         
     def agentsMove(self):
         for target in self.targets: 
@@ -232,20 +319,19 @@ class MainWindow(QtGui.QWidget):
         self.center.getDataFromSensors(self.sensors)
     
     def findIntersection(self):
-        alpha = 0.1
+        alpha = float(self.edit_lmiAlpha.text())
         if self.rb_algorithm2.isChecked():
-            #self.center.solveByLMI(alpha)
             try:
                 self.center.solveByLMI(alpha)
             except Exception:
                 print 'LMI don\'t work :c'
                 print Exception
         elif self.rb_algorithm1.isChecked(): 
-            self.center.bruteForce()
+            self.center.bruteForceT(alpha)
         elif self.rb_algorithm3.isChecked():
             try:
                 self.center.solveByLMI(alpha)
-                self.center.bruteForce()
+                self.center.bruteForce(alpha)
             except Exception:
                 print 'LMI don\'t work :c'
                 print Exception
@@ -346,7 +432,8 @@ class MainWindow(QtGui.QWidget):
         #add measurement
         for indexSensor in range(len(self.sensors)):
             for indexTarget in range(len(self.targets)):
-                clr = self.colors[indexSensor]
+                clr = 'red'
+                #clr = self.colors[indexSensor]
                 point = patches.Ellipse((self.center.xOfTarget(indexTarget, indexSensor),
                                          self.center.yOfTarget(indexTarget, indexSensor)), 
                                         1, 1, color=clr, linewidth=1)

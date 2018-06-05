@@ -10,6 +10,7 @@ import cvxlib as cvx
 import numpy as np
 from matplotlib import patches
 import datetime
+import time
 
 class ComputingCenter(object):
    
@@ -238,7 +239,7 @@ class ComputingCenter(object):
     
     def inEllipse(self, point, e):
         #type(e) = cvx.Ellipse
-        #point.T = point
+        #point.T = point        
         leftPart = np.dot(np.dot(point, e.A), point) + 2 * np.dot(point, e.b) + e.c 
         if leftPart <= 0:
             return True
@@ -247,9 +248,9 @@ class ComputingCenter(object):
     def methodMonteCarlo(self, indexTarget, indSensors):
         #find boundary
         x_c, y_c, size = self.createIntersectionBoundary(indexTarget, indSensors)
-        print 'xy', x_c, y_c, 'size = ', size
+        #print 'xy', x_c, y_c, 'size = ', size
         boundaryVol = np.power(size, 2)
-        numShots = 10 * boundaryVol
+        numShots = 25 * boundaryVol
         
         a = np.random.uniform(x_c-size/2, x_c+size/2, numShots)
         b = np.random.uniform(y_c-size/2, y_c+size/2, numShots)
@@ -259,12 +260,45 @@ class ComputingCenter(object):
             #count those points that belong to all ellipses at once
             if all(self.inEllipse(np.array([x, y]), self.neighborhoods[indexTarget, j]) for j in indSensors):
                 counter += 1
-        volume = float(counter) / numShots * boundaryVol
+        volume = float(counter) / float(numShots) * boundaryVol
+        return volume
+
+    def methodMonteCarloLMI(self, indexTarget, indSensors):
+        #find boundary
+        x_c, y_c, size = self.createIntersectionBoundary2(indexTarget)
+        boundaryVol = np.power(size, 2)
+        numShots = 25 * boundaryVol
+        
+        a = np.random.uniform(x_c-size/2, x_c+size/2, numShots)
+        b = np.random.uniform(y_c-size/2, y_c+size/2, numShots)
+        
+        counter = 0
+        for x, y in zip(a, b):
+            #count those points that belong to all ellipses at once
+            if all(self.inEllipse(np.array([x, y]), self.neighborhoods[indexTarget, j]) for j in indSensors):
+                counter += 1
+        volume = float(counter) / float(numShots) * boundaryVol
         return volume
         
     def solveByLMI(self, alpha):
+        start_time = time.time()
+        limit = 0.001
         resourceMatrix, self.outerEllipses = cvx.distributeSensors(self.neighborhoods, alpha)
-        print 'resourceMatrix', resourceMatrix
+        for i in range(resourceMatrix.shape[0]):
+            for j in range(resourceMatrix.shape[1]):
+                if resourceMatrix[i, j] > limit:
+                    resourceMatrix[i, j] = 1
+                else:
+                    resourceMatrix[i, j] = 0
+        
+        numTargets = self.getNumTargets
+        for i in range(numTargets):
+            indsSensors =  np.asarray(np.where(resourceMatrix[i,:] == 1)[1]).reshape(-1)
+            vol  = self.methodMonteCarloLMI(i, indsSensors)
+            fq = vol + alpha * len(indsSensors)
+        
+        print 'timer LMI:', time.time() - start_time, 'seconds'
+        #print 'resourceMatrix', resourceMatrix
         try:
             now = datetime.datetime.now()
             now = now.strftime("%Y-%m-%d %H-%M-%S")
@@ -341,7 +375,29 @@ class ComputingCenter(object):
 #        except IOError:
 #            print("An IOError has occurred!")    
 
-    def bruteForce(self):
+    def bruteForceT(self, alpha):
+        start_time = time.time()
+        print 'timer BF start:', datetime.datetime.now(), 'seconds'
+        numSensors = self.getNumSensors
+        numTargets = self.getNumTargets
+#brute force___________________________________________________
+        num = np.power(2, numSensors)
+        for k in range(1, num):
+            indsSensors = []
+            for j in range(numSensors):
+                if k & (1 << j):
+                    indsSensors.append(j)
+            summ = 0
+            for i in range(numTargets):
+                vol = self.methodMonteCarlo(i, indsSensors)
+                fq = vol + alpha * len(indsSensors)
+                summ += vol
+ #end brute force_______________________________________________
+        print 'timer BF:', time.time() - start_time, 'seconds'
+        print 'timer end:', datetime.datetime.now()
+        
+        
+    def bruteForce(self, alpha):
         numSensors = self.getNumSensors
         numTargets = self.getNumTargets
         try:
@@ -353,7 +409,7 @@ class ComputingCenter(object):
                 line = 'subsets' + ' ' * max((numSpaceSubsets - 7), 0)
                 numSpaceSubsets = len(line)
                 
-                spaceTargetSec = 11
+                spaceTargetSec = 22
                 line += '|target' + (spaceTargetSec * numTargets - 7) * ' ' +  '|Total volume\n'
                 bondaryBtm = len(line) * '-' + '\n'        
                 line += bondaryBtm
@@ -378,11 +434,15 @@ class ComputingCenter(object):
                     summ = 0
                     for i in range(numTargets):
                         vol = self.methodMonteCarlo(i, indsSensors)
+                        fq = vol + alpha * len(indsSensors)
                         summ += vol
                         print 'target', i, ' vol = ', vol
                         volStr = '%0.4f' % vol
-                        tempN = spaceTargetSec - 1 - len(volStr)
+                        fqStr = '%0.4f' % fq
+                        tempN = spaceTargetSec / 2 - 1 - len(volStr)
                         line = '|' + volStr + tempN * ' '
+                        tempN = spaceTargetSec / 2 - 1 - len(fqStr)
+                        line += '|' + fqStr + tempN * ' '
                         file_handler.write(line)
                     summStr = '%0.4f' % summ 
                     line = '|' +  summStr +'\n'

@@ -80,7 +80,8 @@ def distributeSensors(ellipses, alpha):
         
     #Form and solve optimization problem
     prob = cvx.Problem(obj, constraints)
-    prob.solve(verbose=True, max_iters=1000, refinement = 2)
+    #prob.solve(verbose=True, max_iters=1000, refinement = 2)
+    prob.solve(max_iters=1000, refinement = 2)
     if prob.status != cvx.OPTIMAL:
         raise Exception('CVXPY Error')
     
@@ -90,7 +91,7 @@ def distributeSensors(ellipses, alpha):
         e = Ellipse()
         temp_c = np.array(np.dot(np.dot(b[i].value.T, np.linalg.matrix_power(A[i].value, -1)), b[i].value) - 1)
         e.initByCQF(np.array(A[i].value), np.array(b[i].value).reshape(-1), temp_c[0][0])
-        final_ellipses.append(e)
+        final_ellipses.append(e)  
     return tau.value, final_ellipses
     
 def findIntersection(ellipses):
